@@ -6,6 +6,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    allowedHosts: true, // allow all hosts to access the server - for ngrok use
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
