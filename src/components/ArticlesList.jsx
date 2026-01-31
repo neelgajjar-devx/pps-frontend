@@ -7,6 +7,7 @@ function ArticlesList() {
   const [error, setError] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [onlyInteresting, setOnlyInteresting] = useState(false)
+  const [togglingId, setTogglingId] = useState(null)
   const articlesPerPage = 10
 
   useEffect(() => {
@@ -45,6 +46,29 @@ function ArticlesList() {
   const handlePageChange = (page) => {
     setCurrentPage(page)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleToggleInteresting = async (article) => {
+    const id = article.id
+    const nextInteresting = !article.is_interesting
+    setTogglingId(id)
+    try {
+      const res = await fetch(`/api/posts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_interesting: nextInteresting }),
+      })
+      if (!res.ok) throw new Error('Failed to update')
+      setArticles((prev) =>
+        prev.map((a) =>
+          a.id === id ? { ...a, is_interesting: nextInteresting } : a,
+        ),
+      )
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setTogglingId(null)
+    }
   }
 
   const hasData = !loading && !error && filteredArticles.length > 0
@@ -92,7 +116,7 @@ function ArticlesList() {
                     : 'text-slate-600'
                 }`}
               >
-                <span className='text-[11px]'>★</span>
+                <span className='text-amber-400 text-[11px]'>★</span>
                 Interesting Only
               </button>
             </div>
@@ -143,13 +167,31 @@ function ArticlesList() {
                                 : 'border-slate-200 bg-slate-50/60'
                             } hover:border-indigo-400 hover:bg-indigo-50`}
                           >
-                            {/* Left icon column */}
+                            {/* Left icon column - clickable star */}
                             <div className='flex items-start pt-1'>
-                              {article.is_interesting ? (
-                                <span className='text-lg text-amber-500'>★</span>
-                              ) : (
-                                <span className='text-lg text-slate-300'>★</span>
-                              )}
+                              <button
+                                type='button'
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  handleToggleInteresting(article)
+                                }}
+                                disabled={togglingId === article.id}
+                                className='rounded p-0.5 text-lg transition hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50 hover:cursor-pointer'
+                                aria-label={
+                                  article.is_interesting
+                                    ? 'Mark as not interesting'
+                                    : 'Mark as interesting'
+                                }
+                              >
+                                {article.is_interesting ? (
+                                  <span className='text-amber-500'>★</span>
+                                ) : (
+                                  <span className='text-slate-300 hover:text-slate-500'>
+                                    ★
+                                  </span>
+                                )}
+                              </button>
                             </div>
 
                             {/* Main content */}
@@ -162,7 +204,7 @@ function ArticlesList() {
                               </Link>
                               <div className='flex flex-wrap items-center gap-2 text-[11px] text-slate-500'>
                                 {article.published_at && (
-                                  <span>
+                                  <span className='inline-flex items-center rounded-full bg-indigo-400 px-2 py-0.5 text-[11px] font-medium text-white'>
                                     {new Date(
                                       article.published_at,
                                     ).toLocaleDateString('en-US', {
@@ -172,11 +214,16 @@ function ArticlesList() {
                                     })}
                                   </span>
                                 )}
-                                {article.is_interesting && (
-                                  <span className='inline-flex items-center rounded-full bg-indigo-600 px-2 py-0.5 text-[11px] font-medium text-white'>
-                                    INTERESTING
+                                {article.source && (
+                                  <span className='inline-flex items-center rounded-full bg-indigo-400 px-2 py-0.5 text-[11px] font-medium text-white'>
+                                    {article.source === "moneycontrol" ? "MoneyControl" : article.source}
                                   </span>
                                 )}
+                                {/* {article.is_interesting && (
+                                  <span className='inline-flex items-center rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-medium text-white'>
+                                    INTERESTING
+                                  </span>
+                                )} */}
                               </div>
                             </div>
 
@@ -184,7 +231,7 @@ function ArticlesList() {
                             <div className='flex flex-col items-end justify-between gap-2'>
                               <div className='flex flex-wrap items-center gap-2'>
                                 {article.metadata?.category && (
-                                  <span className='rounded-full bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800 capitalize'>
+                                  <span className='rounded-full bg-amber-50 px-3 py-1 text-[12px] font-semibold text-amber-800 capitalize'>
                                     {article.metadata.category}
                                   </span>
                                 )}
